@@ -3,7 +3,7 @@ import 'package:form_field_validator/form_field_validator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_databse/controller/login_controller.dart';
 import 'package:test_databse/model/profile.dart';
-import 'package:test_databse/screens/rider_screen.dart';
+import 'package:test_databse/screens/rider/rider_screen.dart';
 import 'package:test_databse/screens/select_register_screen.dart';
 import 'package:test_databse/screens/user_screen.dart';
 
@@ -17,11 +17,17 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controller ของ textfield
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool _isPressedRider = false;
+
+  String? _passwordComplex(String? value) {
+    if (value == null || value.isEmpty) return "กรุณาป้อนรหัสผ่าน";
+    if (value.length < 8) return "รหัสผ่านต้องอย่างน้อย 8 ตัวอักษร";
+
+    return null;
+  }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -34,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
       if (profile != null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("เข้าสู่ระบบสำเร็จ!")));
+        ).showSnackBar(const SnackBar(content: Text("เข้าสู่ระบบสำเร็จ")));
 
         if (profile.userType == UserType.user) {
           Navigator.pushReplacement(
@@ -47,18 +53,14 @@ class _LoginPageState extends State<LoginPage> {
             MaterialPageRoute(builder: (_) => RiderHomePage()),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("อีเมลหรือรหัสผ่านไม่ถูกต้อง")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("ไม่พบประเภทผู้ใช้")));
         }
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("เข้าสู่ระบบเรียบร้อย")));
-
-        print("Email: ${emailController.text}");
-
-        print("Password: ${passwordController.text}");
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("อีเมลหรือรหัสผ่านไม่ถูกต้อง")),
+        );
       }
     }
   }
@@ -94,19 +96,15 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: GoogleFonts.prompt(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
+        child: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.prompt(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -119,16 +117,14 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Form(
-              key: _formKey, // ใส่ formKey ตรงนี้
+              key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 80),
-
                   Text(
                     "เข้าสู่ระบบ",
                     style: GoogleFonts.prompt(
@@ -139,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 40),
 
-                  // Email
+                  // ===== Email =====
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -149,29 +145,25 @@ class _LoginPageState extends State<LoginPage> {
                     ]),
                     decoration: const InputDecoration(
                       icon: Icon(Icons.email),
-                      labelText: 'Email',
+                      labelText: 'อีเมล',
                       hintText: 'example@gmail.com',
                     ),
                   ),
                   const SizedBox(height: 40),
 
-                  // Password
+                  // ===== Password =====
                   TextFormField(
                     controller: passwordController,
                     obscureText: true,
-                    validator: MinLengthValidator(
-                      8,
-                      errorText: "รหัสผ่านต้องอย่างน้อย 8 ตัว",
-                    ),
+                    validator: _passwordComplex,
                     decoration: const InputDecoration(
                       icon: Icon(Icons.lock),
-                      labelText: 'Password',
-                      hintText: 'At least 8 characters',
+                      labelText: 'รหัสผ่าน',
+                      hintText: 'อย่างน้อย 8 ตัว และมีตัวเลข+ตัวอักษร',
                     ),
                   ),
                   const SizedBox(height: 50),
 
-                  // Button
                   _buildButton(
                     text: "เข้าสู่ระบบ",
                     color: Colors.green.shade700,
@@ -188,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                           MaterialPageRoute(builder: (_) => RegisterTypePage()),
                         );
                       },
-                      child: Text("สมัครสมาชิก"),
+                      child: const Text("สมัครสมาชิก"),
                     ),
                   ),
                 ],

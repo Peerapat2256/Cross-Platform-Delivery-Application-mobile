@@ -5,8 +5,6 @@ import 'package:test_databse/firebase_options.dart';
 import 'package:test_databse/screens/login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'package:test_databse/screens/select_register_screen.dart';
-import 'package:test_databse/screens/sending/send_home.dart';
 import 'package:test_databse/screens/upload_area.dart';
 
 void main() async {
@@ -36,3 +34,27 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+// class CheckUser extends StatefulWidget {
+//   const CheckUser({super.key});
+
+//   @override
+//   State<CheckUser> createState() => _CheckUserState();
+// }
+
+// class _CheckUserState extends State<CheckUser> {
+//   @override
+//   void initState( ) {
+// LoginController().isLoggedIn().then(
+//   (value){
+//     // if(value){
+//     //   Navigator.push(context, );
+//     // }
+//   }
+// );
+//     super.setState();
+//   }
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(body: Center(child: CircularProgressIndicator()),);
+//  }
+// }

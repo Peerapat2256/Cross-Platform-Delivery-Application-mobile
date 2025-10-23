@@ -31,18 +31,21 @@ class RiderRegisterController {
     required String password,
     required String name,
     required String phone,
-    File? imageFile,
-    String? plate, // เพิ่มตรงนี้
+    File? imageFile, // ถ้าเลือกจากเครื่อง
+    String? imageUrl, // ถ้าได้จาก Cloudinary
+    String? plate, // ทะเบียนรถ
+    String? plateUrl, // ทะเบียนรถ
   }) async {
     UserCredential cred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    String? photoUrl;
-    if (imageFile != null) {
+    // เลือกใช้ URL จาก Cloudinary ก่อน ถ้าไม่มีค่อยอัปโหลด File ไป Firebase Storage
+    String? photoUrl = imageUrl;
+    if (photoUrl == null && imageFile != null) {
       photoUrl = await uploadImageToFirebase(imageFile, cred.user!.uid);
-      print("Cloud URL: $photoUrl");
+      print("Firebase Storage URL: $photoUrl");
     }
 
     final profile = Profile(
@@ -52,12 +55,16 @@ class RiderRegisterController {
       name: name,
       userType: UserType.rider,
       photoUrl: photoUrl,
+      plateUrl: plateUrl,
     );
 
+    // อัปเดต Firestore พร้อมทะเบียนและ URL
     await _db.collection('users').doc(profile.uid).set({
       ...profile.toMap(),
       'phone': phone,
-      'plate': plate, // เพิ่มทะเบียนรถตรงนี้
+      'plate': plate,
+      'photoUrl': photoUrl, // เก็บ URL รูปยานพาหนะ
+      'plateUrl': plateUrl, // เก็บ URL โปรไฟล์
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

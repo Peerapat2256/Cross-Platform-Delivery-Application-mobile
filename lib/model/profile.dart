@@ -8,6 +8,7 @@ class Profile {
   UserType userType;
   String? photoUrl;
   String? plate;
+  String? plateUrl;
 
   Profile({
     this.uid = '',
@@ -17,6 +18,7 @@ class Profile {
     required this.userType,
     this.photoUrl,
     this.plate,
+    this.plateUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,7 @@ class Profile {
       'userType': userType.toString().split('.').last,
       'photoUrl': photoUrl,
       'plate': plate, // เพิ่มตรงนี้
+      'plateUrl': plateUrl,
     };
   }
 
@@ -39,6 +42,7 @@ class Profile {
       userType: map['userType'] == 'rider' ? UserType.rider : UserType.user,
       photoUrl: map['photoUrl'],
       plate: map['plate'],
+      plateUrl: map['photoUrl'],
     );
   }
 }

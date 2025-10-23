@@ -1,5 +1,10 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:test_databse/controller/rider/rider_controller.dart';
+
+import 'package:test_databse/model/rider.dart';
+import 'package:test_databse/screens/rider/delivery_tracking_screen.dart'
+    hide RiderHomeController; // ตรวจสอบ Path ให้ถูกต้อง
 
 class RiderHomePage extends StatefulWidget {
   const RiderHomePage({Key? key}) : super(key: key);
@@ -9,8 +14,29 @@ class RiderHomePage extends StatefulWidget {
 }
 
 class _RiderHomePageState extends State<RiderHomePage> {
-  String segmentedValue = 'รับงาน';
+  final RiderHomeController _controller = RiderHomeController();
   int _selectedIndex = 0;
+
+  String _riderName = 'กำลังโหลด...';
+  String? _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRiderData();
+  }
+
+  Future<void> _loadRiderData() async {
+    final riderData = await _controller.getCurrentRiderData();
+    if (riderData != null && mounted) {
+      setState(() {
+        // ดึง 'name' มาแสดงเป็นชื่อ
+        _riderName = riderData['name'] ?? 'Rider';
+        // ดึง 'plateUrl' มาแสดงเป็นรูปโปรไฟล์ ตามโครงสร้างของ RegisterController
+        _profileImageUrl = riderData['plateUrl'];
+      });
+    }
+  }
 
   void _onNavTapped(int index) {
     setState(() {
@@ -28,15 +54,15 @@ class _RiderHomePageState extends State<RiderHomePage> {
         toolbarHeight: 72,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            SizedBox(height: 6),
-            Text(
+          children: [
+            const SizedBox(height: 6),
+            const Text(
               'สวัสดีคุณ',
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
             Text(
-              'Allan Smith',
-              style: TextStyle(fontSize: 16, color: Colors.black),
+              _riderName,
+              style: const TextStyle(fontSize: 16, color: Colors.black),
             ),
           ],
         ),
@@ -50,7 +76,17 @@ class _RiderHomePageState extends State<RiderHomePage> {
             child: CircleAvatar(
               radius: 18,
               backgroundColor: Colors.blueGrey.shade100,
-              child: const Text('AS', style: TextStyle(color: Colors.black87)),
+              backgroundImage: _profileImageUrl != null
+                  ? NetworkImage(_profileImageUrl!) // <-- แสดงรูปที่ดึงมา
+                  : null,
+              child: (_profileImageUrl == null)
+                  ? Text(
+                      _riderName.length > 1
+                          ? _riderName.substring(0, 2).toUpperCase()
+                          : '..',
+                      style: const TextStyle(color: Colors.black87),
+                    )
+                  : null,
             ),
           ),
         ],
@@ -62,54 +98,22 @@ class _RiderHomePageState extends State<RiderHomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 8),
-
-              // Title
               Center(
                 child: Text(
                   'Rider',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Segmented control
-              CupertinoSegmentedControl<String>(
-                children: const {
-                  'รับงาน': Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 24.0,
-                    ),
-                    child: Text('รับงาน'),
-                  ),
-                  'ค้นหาผู้รับ': Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 24.0,
-                    ),
-                    child: Text('ค้นหาผู้รับ'),
-                  ),
-                },
-                groupValue: segmentedValue,
-                unselectedColor: Colors.grey.shade100,
-                borderColor: Colors.grey.shade300,
-                pressedColor: Colors.grey.shade200,
-                selectedColor: Colors.black,
-                onValueChanged: (v) => setState(() => segmentedValue = v),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Small action cards
+              const SizedBox(height: 28),
               Row(
-                children: [
+                children: const [
                   Expanded(
                     child: _SmallActionCard(
                       title: 'รับงาน',
                       icon: Icons.assignment_turned_in_outlined,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: _SmallActionCard(
                       title: 'ค้นหาผู้รับ',
@@ -118,35 +122,93 @@ class _RiderHomePageState extends State<RiderHomePage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 18),
-
-              // Section Title
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'รับงาน',
+                    'งานที่รอไรเดอร์',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  TextButton(onPressed: () {}, child: const Text('View all')),
+                  TextButton(onPressed: () {}, child: const Text('ดูทั้งหมด')),
                 ],
               ),
-
               const SizedBox(height: 8),
-
-              // Job list
               Expanded(
-                child: ListView.separated(
-                  itemCount: 2,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return JobCard(
-                      title: 'Food Items/Groceries',
-                      recipient: 'Paul Pogba',
-                      dropOff: 'Maryland bustop, Anthony Ikeja',
-                      onAccept: () {},
-                      onReject: () {},
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _controller.getAvailableJobs(),
+                  builder: (context, snapshot) {
+                    print(
+                      "🕵️‍ StreamBuilder ทำงานใหม่! สถานะ: ${snapshot.connectionState}",
+                    );
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      print("🔥 เกิดข้อผิดพลาดใน Stream: ${snapshot.error}");
+                      return const Center(
+                        child: Text('เกิดข้อผิดพลาดในการโหลดงาน'),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      print("🤔 ไม่มีข้อมูลงาน หรือข้อมูลว่างเปล่า");
+                      return const Center(
+                        child: Text(
+                          'ยังไม่มีงานในขณะนี้',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      );
+                    }
+
+                    final jobDocs = snapshot.data!.docs;
+                    print("✅ พบงาน ${jobDocs.length} รายการ! กำลังจะแสดงผล...");
+                    return ListView.separated(
+                      itemCount: jobDocs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final delivery = Delivery.fromMap(jobDocs[index]);
+
+                        return JobCard(
+                          title: 'เอกสาร/พัสดุ',
+                          recipient: delivery.receiverName,
+                          dropOff: delivery.deliveryAddress,
+                          onAccept: () async {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              },
+                            );
+
+                            final result = await _controller.acceptJob(
+                              delivery.deliveryId,
+                            );
+
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(result)));
+
+                            if (result == "รับงานสำเร็จ") {
+                              if (mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DeliveryTrackingPage(
+                                      deliveryId: delivery.deliveryId,
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          onReject: () {},
+                        );
+                      },
                     );
                   },
                 ),
@@ -170,6 +232,25 @@ class _RiderHomePageState extends State<RiderHomePage> {
             label: 'Profile',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          print('กำลังสร้างงานจำลอง...');
+          await _controller.simulateNewJob();
+
+          // แสดงข้อความบอกว่าสร้างสำเร็จแล้ว
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('สร้างงานจำลอง 1 งานสำเร็จ!'),
+                backgroundColor: Colors.blue,
+              ),
+            );
+          }
+        },
+        tooltip: 'สร้างงานจำลอง',
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add_location_alt_outlined),
       ),
     );
   }
@@ -251,7 +332,7 @@ class JobCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
-                    Icons.local_grocery_store_outlined,
+                    Icons.local_shipping_outlined,
                     size: 22,
                     color: Colors.orange,
                   ),
@@ -265,7 +346,6 @@ class JobCard extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 10),
             Row(
               children: [
@@ -276,12 +356,11 @@ class JobCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Recipient: $recipient',
+                  'ผู้รับ: $recipient',
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
             Row(
               children: [
@@ -293,13 +372,13 @@ class JobCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    dropOff,
+                    'ที่อยู่: $dropOff',
                     style: const TextStyle(color: Colors.black54),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
             Row(
               children: [
@@ -314,7 +393,7 @@ class JobCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
-                      'Reject',
+                      'ปฏิเสธ',
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   ),
@@ -331,7 +410,7 @@ class JobCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
-                      'Accept',
+                      'รับงาน',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

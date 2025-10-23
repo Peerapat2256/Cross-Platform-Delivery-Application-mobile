@@ -31,18 +31,19 @@ class UserRegisController {
     required String password,
     required String name,
     required String phone,
-    File? imageFile,
+    File? imageFile, // สำหรับอัปโหลด Firebase Storage ถ้าอยาก
+    String? imageUrl, // สำหรับเก็บ URL จาก Cloudinary
   }) async {
     UserCredential cred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    String? photoUrl;
-    if (imageFile != null) {
+    String? photoUrl = imageUrl; // ใช้ URL จาก Cloudinary ก่อน
+    if (photoUrl == null && imageFile != null) {
+      // ถ้าไม่มี URL แต่มี File ให้ไปอัปโหลด Firebase Storage
       photoUrl = await uploadImageToFirebase(imageFile, cred.user!.uid);
-
-      print("Cloud URL: $photoUrl");
+      print("Firebase Storage URL: $photoUrl");
     }
 
     final profile = Profile(

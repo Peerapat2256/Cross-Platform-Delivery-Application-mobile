@@ -45,3 +45,8 @@ android {
 flutter {
     source = "../.."
 }
+dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+    implementation("com.google.android.gms:play-services-maps:18.2.0") // <-- บรรทัดสำคัญ
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
+}

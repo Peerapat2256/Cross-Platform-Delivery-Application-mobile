@@ -59,4 +59,5 @@ class DefaultFirebaseOptions {
     projectId: 'test-database-2dbac',
     storageBucket: 'test-database-2dbac.firebasestorage.app',
   );
+
 }

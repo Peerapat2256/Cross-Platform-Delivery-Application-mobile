@@ -10,12 +10,15 @@ class UploadArea extends StatefulWidget {
 }
 
 class _UploadAreaState extends State<UploadArea> {
+  String? uploadedUrl;
+
   @override
   Widget build(BuildContext context) {
     final selectedFile =
         ModalRoute.of(context)!.settings.arguments as FilePickerResult;
+
     return Scaffold(
-      appBar: AppBar(title: Text("upload")),
+      appBar: AppBar(title: Text("Upload")),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -28,36 +31,53 @@ class _UploadAreaState extends State<UploadArea> {
             TextFormField(
               readOnly: true,
               initialValue: selectedFile.files.first.extension,
-              decoration: InputDecoration(label: Text("extension")),
+              decoration: InputDecoration(label: Text("Extension")),
             ),
             TextFormField(
               readOnly: true,
-              initialValue: "${selectedFile.files.first.size}bytes.",
-              decoration: InputDecoration(label: Text("size")),
+              initialValue: "${selectedFile.files.first.size} bytes",
+              decoration: InputDecoration(label: Text("Size")),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+
             Row(
               children: [
-                ElevatedButton(onPressed: () {}, child: Text("Cancel")),
-
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Cancel"),
+                ),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () async {
-                    final result = await uploadTocloud(selectedFile);
+                    final url = await uploadTocloud(
+                      selectedFile,
+                    ); // ✅ return String?
 
-                    if (result) {
+                    if (url != null) {
+                      setState(() {
+                        uploadedUrl = url;
+                      });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("File Upload Successully")),
+                        SnackBar(content: Text("File uploaded successfully")),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("File cannot Upload ")),
+                        SnackBar(content: Text("File upload failed")),
                       );
                     }
                   },
-                  child: Text("upload"),
+                  child: Text("Upload"),
                 ),
               ],
             ),
+
+            const SizedBox(height: 20),
+
+            if (uploadedUrl != null) ...[
+              SelectableText("URL: $uploadedUrl"),
+              const SizedBox(height: 10),
+              Image.network(uploadedUrl!, height: 200),
+            ],
           ],
         ),
       ),
