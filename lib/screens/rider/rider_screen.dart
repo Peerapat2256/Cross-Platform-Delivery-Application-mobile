@@ -4,7 +4,8 @@ import 'package:test_databse/controller/rider/rider_controller.dart';
 
 import 'package:test_databse/model/rider.dart';
 import 'package:test_databse/screens/rider/delivery_tracking_screen.dart'
-    hide RiderHomeController; // ตรวจสอบ Path ให้ถูกต้อง
+    hide RiderHomeController;
+import 'package:test_databse/screens/rider/job_preview_screen.dart'; // ตรวจสอบ Path ให้ถูกต้อง
 
 class RiderHomePage extends StatefulWidget {
   const RiderHomePage({Key? key}) : super(key: key);
@@ -55,7 +56,7 @@ Future<void> _checkForActiveJob() async {
         // ดึง 'name' มาแสดงเป็นชื่อ
         _riderName = riderData['name'] ?? 'Rider';
         // ดึง 'plateUrl' มาแสดงเป็นรูปโปรไฟล์ ตามโครงสร้างของ RegisterController
-        _profileImageUrl = riderData['plateUrl'];
+        _profileImageUrl = riderData['photoUrl'];
       });
     }
   }
@@ -173,7 +174,7 @@ Future<void> _checkForActiveJob() async {
                       );
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      print("🤔 ไม่มีข้อมูลงาน หรือข้อมูลว่างเปล่า");
+                      print("ไม่มีข้อมูลงาน หรือข้อมูลว่างเปล่า");
                       return const Center(
                         child: Text(
                           'ยังไม่มีงานในขณะนี้',
@@ -183,7 +184,7 @@ Future<void> _checkForActiveJob() async {
                     }
 
                     final jobDocs = snapshot.data!.docs;
-                    print("✅ พบงาน ${jobDocs.length} รายการ! กำลังจะแสดงผล...");
+                    //print("✅ พบงาน ${jobDocs.length} รายการ! กำลังจะแสดงผล...");
                     return ListView.separated(
                       itemCount: jobDocs.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -191,42 +192,21 @@ Future<void> _checkForActiveJob() async {
                         final delivery = Delivery.fromMap(jobDocs[index]);
 
                         return JobCard(
-                          title: 'เอกสาร/พัสดุ',
                           recipient: delivery.receiverName,
-                          dropOff: delivery.deliveryAddress,
-                          onAccept: () async {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (BuildContext context) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              },
-                            );
-
-                            final result = await _controller.acceptJob(
-                              delivery.deliveryId,
-                            );
-
-                            Navigator.pop(context);
-
-                            ScaffoldMessenger.of(
+                          pickupAddress: delivery.pickupAddress, //  ส่งที่อยู่รับ
+                          dropOffAddress: delivery.deliveryAddress, // ส่งที่อยู่ส่ง
+                          pickupImageUrl: delivery.pickupImageUrl, // ส่ง URL รูป
+                          onAccept: () {
+                            // ไม่ต้องเรียก controller.acceptJob() แล้ว
+                            // ให้เด้งไปหน้าพรีวิวแทน
+                            Navigator.push(
                               context,
-                            ).showSnackBar(SnackBar(content: Text(result)));
-
-                            if (result == "รับงานสำเร็จ") {
-                              if (mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DeliveryTrackingPage(
-                                      deliveryId: delivery.deliveryId,
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
+                              MaterialPageRoute(
+                                builder: (context) => JobPreviewScreen(
+                                  delivery: delivery, 
+                                ),
+                              ),
+                            );
                           },
                           onReject: () {},
                         );
@@ -318,18 +298,21 @@ class _SmallActionCard extends StatelessWidget {
   }
 }
 
+// ‼️ แทนที่ JobCard เดิมด้วยอันนี้ ‼️
 class JobCard extends StatelessWidget {
-  final String title;
   final String recipient;
-  final String dropOff;
+  final String pickupAddress; // 1. เพิ่มที่อยู่รับ
+  final String dropOffAddress; // 2. เปลี่ยนชื่อ (เดิมคือ dropOff)
+  final String? pickupImageUrl; // 3. เพิ่ม URL รูป
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
   const JobCard({
     Key? key,
-    required this.title,
     required this.recipient,
-    required this.dropOff,
+    required this.pickupAddress,
+    required this.dropOffAddress,
+    this.pickupImageUrl,
     required this.onAccept,
     required this.onReject,
   }) : super(key: key);
@@ -339,108 +322,137 @@ class JobCard extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.local_shipping_outlined,
-                    size: 22,
-                    color: Colors.orange,
-                  ),
+      clipBehavior: Clip.antiAlias, // 4. เพิ่ม clipBehavior
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 5. แสดงรูป (ถ้ามี)
+          if (pickupImageUrl != null)
+            Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(pickupImageUrl!),
+                  fit: BoxFit.cover,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+              ),
+            )
+          else
+            // (ถ้าไม่มีรูป)
+            Container(
+              height: 120,
+              width: double.infinity,
+              color: Colors.grey.shade200,
+              child: Icon(Icons.inventory_2_outlined,
+                  size: 40, color: Colors.grey.shade500),
             ),
-            const SizedBox(height: 10),
-            Row(
+
+          Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.person_outline,
-                  size: 16,
-                  color: Colors.black54,
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_outline,
+                      size: 16,
+                      color: Colors.black54,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ผู้รับ: $recipient',
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'ผู้รับ: $recipient',
-                  style: const TextStyle(color: Colors.black87),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.place_outlined,
-                  size: 16,
-                  color: Colors.black54,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'ที่อยู่: $dropOff',
-                    style: const TextStyle(color: Colors.black54),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onReject,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.redAccent),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 12),
+
+                // 6. เพิ่มส่วนแสดง "ที่อยู่รับ"
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.store_outlined, // ไอคอนจุดรับ
+                      size: 16,
+                      color: Colors.blue.shade700,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'รับของ: $pickupAddress',
+                        style: TextStyle(color: Colors.blue.shade700),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      'ปฏิเสธ',
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onAccept,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 8),
+
+                // 7. แก้ไขส่วน "ที่อยู่ส่ง"
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.place_outlined, // ไอคอนจุดส่ง
+                      size: 16,
+                      color: Colors.green.shade700,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'ส่งของ: $dropOffAddress',
+                        style: TextStyle(color: Colors.green.shade700),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      'รับงาน',
-                      style: TextStyle(color: Colors.white),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 8. ปุ่ม (เหมือนเดิม)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onReject,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'ปฏิเสธ',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: onAccept,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'รับงาน',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,10 +1,11 @@
 // lib/screens/user/create_delivery_screen.dart
 import 'dart:io';
-
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_databse/model/address.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:test_databse/model/profile.dart';
 import 'package:test_databse/service/clouddinary_service.dart';
 import 'package:test_databse/service/db_service.dart';
@@ -21,19 +22,22 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
   final _phoneController = TextEditingController();
   final _picker = ImagePicker();
 
-  // 1. สถานะของฟอร์ม
+  //  สถานะของฟอร์ม
   UserAddress? _selectedSenderAddress;
   Profile? _foundReceiver;
   UserAddress? _selectedReceiverAddress;
   File? _pickedImage;
   String? _pickedImageUrl;
 
-  // 2. สถานะการค้นหา
+  // สถานะการค้นหา
   bool _isSearchingReceiver = false;
   List<UserAddress> _receiverAddresses = []; // ที่อยู่ของผู้รับ
   bool _isCreatingOrder = false;
 
-  // 3. ฟังก์ชันค้นหาผู้รับ
+  final Completer<GoogleMapController> _mapController = Completer();
+  final Set<Marker> _markers = {};
+  static const LatLng _center = LatLng(13.736717, 100.523186); // Bangkok
+  //  ฟังก์ชันค้นหาผู้รับ
   Future<void> _searchReceiver() async {
     if (_phoneController.text.isEmpty) return;
     setState(() {
@@ -74,6 +78,8 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
       setState(() => _isSearchingReceiver = false);
     }
   }
+
+
 
   // 4. ฟังก์ชันถ่ายรูป
   Future<void> _takePicture() async {
@@ -147,6 +153,80 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
     }
   }
 
+  void _updateMarkers() {
+    _markers.clear(); // ล้างของเก่า
+
+    // A. เพิ่มหมุดต้นทาง
+    if (_selectedSenderAddress != null) {
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: LatLng(
+            _selectedSenderAddress!.location.latitude,
+            _selectedSenderAddress!.location.longitude,
+          ),
+          infoWindow: const InfoWindow(title: 'จุดรับ (A)'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        ),
+      );
+    }
+
+    // B. เพิ่มหมุดปลายทาง
+    if (_selectedReceiverAddress != null) {
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('delivery'),
+          position: LatLng(
+            _selectedReceiverAddress!.location.latitude,
+            _selectedReceiverAddress!.location.longitude,
+          ),
+          infoWindow: const InfoWindow(title: 'จุดส่ง (B)'),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        ),
+      );
+    }
+
+    _fitBounds(); // สั่งให้ Map ซูม
+    setState(() {}); // สั่งให้ UI วาดใหม่
+  }
+
+  // เพิ่มฟังก์ชัน Zoom ให้พอดีหมุด
+  Future<void> _fitBounds() async {
+    final controller = await _mapController.future;
+
+    // ถ้ามี 2 หมุด
+    if (_selectedSenderAddress != null && _selectedReceiverAddress != null) {
+      LatLng pickup = LatLng(
+        _selectedSenderAddress!.location.latitude,
+        _selectedSenderAddress!.location.longitude,
+      );
+      LatLng delivery = LatLng(
+        _selectedReceiverAddress!.location.latitude,
+        _selectedReceiverAddress!.location.longitude,
+      );
+
+      LatLngBounds bounds;
+      if (pickup.latitude > delivery.latitude) {
+        bounds = LatLngBounds(southwest: delivery, northeast: pickup);
+      } else {
+        bounds = LatLngBounds(southwest: pickup, northeast: delivery);
+      }
+      controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
+    }
+    // ถ้ามีแค่หมุดเดียว
+    else if (_selectedSenderAddress != null) {
+      controller.animateCamera(CameraUpdate.newLatLngZoom(
+        LatLng(
+          _selectedSenderAddress!.location.latitude,
+          _selectedSenderAddress!.location.longitude,
+        ),
+        15,
+      ));
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -172,7 +252,27 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
               _buildReceiverAddressSelector(),
             ],
             const Divider(height: 32),
-
+            _buildSectionTitle('พิกัดบนแผนที่'),
+            const SizedBox(height: 8),
+            Container(
+              height: 200, // กำหนดความสูงแผนที่
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              clipBehavior: Clip.antiAlias, // ตัดขอบให้โค้ง
+              child: GoogleMap(
+                initialCameraPosition: const CameraPosition(
+                  target: _center,
+                  zoom: 11,
+                ),
+                onMapCreated: (controller) {
+                  _mapController.complete(controller);
+                },
+                markers: _markers,
+              ),
+            ),
+          const Divider(height: 32),
             // --- 3. ส่วนรูปภาพสินค้า ---
             _buildSectionTitle('3. รูปถ่ายสินค้า (สถานะ [1])'),
             _buildImagePicker(),
@@ -234,6 +334,7 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
           }).toList(),
           onChanged: (value) {
             setState(() => _selectedSenderAddress = value);
+            _updateMarkers(); // อัปเดตหมุดบนแผนที่
           },
         );
       },
@@ -296,6 +397,7 @@ class _CreateDeliveryScreenState extends State<CreateDeliveryScreen> {
             }).toList(),
             onChanged: (value) {
               setState(() => _selectedReceiverAddress = value);
+              _updateMarkers(); // อัปเดตหมุดบนแผนที่
             },
           ),
       ],

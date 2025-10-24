@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:test_databse/screens/user/address_list_screen.dart';
 import 'package:test_databse/screens/user/create_delivery_screen.dart';
 import 'package:test_databse/screens/user/delivery_history_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:test_databse/screens/user/multi_tracking_screen.dart';
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
 
@@ -14,16 +17,52 @@ class _UserHomePageState extends State<UserHomePage> {
   String segmentedValue = 'รับงาน';
   int _selectedIndex = 0;
 
+  // เพิ่มตัวแปร
+  String _userName = 'กำลังโหลด...';
+  String? _profileImageUrl;
+
+  // เพิ่ม initState
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // เพิ่มฟังก์ชันโหลดข้อมูล
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists && mounted) {
+        setState(() {
+          _userName = doc.data()?['name'] ?? 'User';
+          _profileImageUrl = doc.data()?['photoUrl'];
+        });
+      }
+    } catch (e) {
+      print("Error loading user data: $e");
+      if (mounted) setState(() => _userName = 'Error');
+    }
+  }
+
   void _onNavTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    if (index == 1) { // 1 คือ 'History' (Index ที่ 0 = Home, 1 = History, 2 = Profile)
+    if (index == 1) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const DeliveryHistoryScreen()),
-      );}
+      );
+     
+    }
   }
 
   @override
@@ -36,15 +75,16 @@ class _UserHomePageState extends State<UserHomePage> {
         toolbarHeight: 72,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            SizedBox(height: 6),
-            Text(
+          children: [
+            const SizedBox(height: 6),
+            const Text(
               'สวัสดีคุณ',
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
+           
             Text(
-              'Allan Smith',
-              style: TextStyle(fontSize: 16, color: Colors.black),
+              _userName, 
+              style: const TextStyle(fontSize: 16, color: Colors.black),
             ),
           ],
         ),
@@ -58,7 +98,18 @@ class _UserHomePageState extends State<UserHomePage> {
             child: CircleAvatar(
               radius: 18,
               backgroundColor: Colors.blueGrey.shade100,
-              child: const Text('AS', style: TextStyle(color: Colors.black87)),
+           
+              backgroundImage: _profileImageUrl != null
+                  ? NetworkImage(_profileImageUrl!)
+                  : null,
+              child: (_profileImageUrl == null)
+                  ? Text(
+                      _userName.length > 1
+                          ? _userName.substring(0, 2).toUpperCase()
+                          : '..',
+                      style: const TextStyle(color: Colors.black87),
+                    )
+                  : null,
             ),
           ),
         ],
@@ -66,8 +117,8 @@ class _UserHomePageState extends State<UserHomePage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
+            
             children: [
               const SizedBox(height: 8),
 
@@ -139,7 +190,19 @@ class _UserHomePageState extends State<UserHomePage> {
                   ),
                 ],
               ),
-
+              const SizedBox(height: 12),
+              _SmallActionCard(
+                title: 'ติดตามงานทั้งหมด (แผนที่รวม)',
+                icon: Icons.map_outlined,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MultiTrackingScreen(),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 18),
 
               // // Section Title

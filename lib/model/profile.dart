@@ -45,7 +45,7 @@ class Profile {
       userType: map['userType'] == 'rider' ? UserType.rider : UserType.user,
       photoUrl: map['photoUrl'],
       plate: map['plate'],
-      plateUrl: map['photoUrl'],
+      plateUrl: map['plateUrl'],
       phone: map['phone'],
     );
   }

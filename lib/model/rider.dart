@@ -10,6 +10,9 @@ class Delivery {
   String status;
   String? riderId;
   final Timestamp createdAt;
+  final String? pickupImageUrl;
+  final GeoPoint pickupLocation; 
+  final GeoPoint deliveryLocation;
 
   Delivery({
     required this.deliveryId,
@@ -21,6 +24,9 @@ class Delivery {
     required this.status,
     this.riderId,
     required this.createdAt,
+    this.pickupImageUrl,
+    required this.pickupLocation,
+    required this.deliveryLocation,
   });
 
   factory Delivery.fromMap(DocumentSnapshot doc) {
@@ -36,6 +42,11 @@ class Delivery {
       status: map['status'] ?? 'unknown',
       riderId: map['rider_id'],
       createdAt: map['created_at'] ?? Timestamp.now(),
+      pickupImageUrl: map['pickup_image_url'],
+      pickupLocation:
+          map['pickup_location'] ?? const GeoPoint(0, 0),
+      deliveryLocation:
+          map['delivery_location'] ?? const GeoPoint(0, 0),
     );
   }
 }

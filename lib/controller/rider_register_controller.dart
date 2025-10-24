@@ -63,8 +63,8 @@ class RiderRegisterController {
       ...profile.toMap(),
       'phone': phone,
       'plate': plate,
-      'photoUrl': photoUrl, // เก็บ URL รูปยานพาหนะ
-      'plateUrl': plateUrl, // เก็บ URL โปรไฟล์
+      'photoUrl': photoUrl, // เก็บ URL โปรไฟล์
+      'plateUrl': plateUrl, // เก็บ URL รูปยานพาหนะ
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
