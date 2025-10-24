@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
+import 'package:test_databse/screens/user/address_list_screen.dart';
+import 'package:test_databse/screens/user/create_delivery_screen.dart';
+import 'package:test_databse/screens/user/delivery_history_screen.dart';
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
 
@@ -16,6 +18,12 @@ class _UserHomePageState extends State<UserHomePage> {
     setState(() {
       _selectedIndex = index;
     });
+
+    if (index == 1) { // 1 คือ 'History' (Index ที่ 0 = Home, 1 = History, 2 = Profile)
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const DeliveryHistoryScreen()),
+      );}
   }
 
   @override
@@ -103,13 +111,30 @@ class _UserHomePageState extends State<UserHomePage> {
                     child: _SmallActionCard(
                       title: 'ส่งพัสดุ',
                       icon: Icons.inventory_2,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateDeliveryScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _SmallActionCard(
-                      title: 'ค้นหาผู้รับ',
-                      icon: Icons.search,
+                      title: 'จัดการที่อยู่', 
+                      icon: Icons.map,     
+                      onTap: () {
+                        //  5. เพิ่ม onTap ให้นำทางไปหน้า List ที่อยู่
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddressListScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -174,38 +199,33 @@ class _UserHomePageState extends State<UserHomePage> {
 class _SmallActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
-  const _SmallActionCard({Key? key, required this.title, required this.icon})
-    : super(key: key);
+  final VoidCallback? onTap;
+  const _SmallActionCard({
+    Key? key,
+    required this.title,
+    required this.icon,
+    this.onTap, //  7. รับค่า onTap
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(12.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.black54),
-          ),
-          const SizedBox(width: 12),
-          Text(title, style: const TextStyle(fontSize: 14)),
-        ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 72,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            // ... (โค้ดเดิม) ...
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
     );
   }

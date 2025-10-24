@@ -24,8 +24,30 @@ class _RiderHomePageState extends State<RiderHomePage> {
   void initState() {
     super.initState();
     _loadRiderData();
+    _checkForActiveJob(); // เรียกฟังก์ชันเช็คงานค้าง
   }
 
+Future<void> _checkForActiveJob() async {
+    final activeJobId = await _controller.checkActiveJob();
+    if (activeJobId != null) {
+      // ถ้ามีงานค้าง
+      print("พบงานค้าง: $activeJobId, กำลังนำทาง...");
+      if (mounted) {
+        // ใช้ pushReplacement เพื่อไม่ให้ย้อนกลับมาหน้านี้ได้
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryTrackingPage(
+              deliveryId: activeJobId,
+            ),
+          ),
+        );
+      }
+    } else {
+      // ไม่มีงานค้าง ก็ไม่ต้องทำอะไร
+      print("ไม่พบงานค้าง, แสดงหน้าหางานใหม่ตามปกติ");
+    }
+  }
   Future<void> _loadRiderData() async {
     final riderData = await _controller.getCurrentRiderData();
     if (riderData != null && mounted) {

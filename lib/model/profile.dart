@@ -9,6 +9,7 @@ class Profile {
   String? photoUrl;
   String? plate;
   String? plateUrl;
+  String? phone;
 
   Profile({
     this.uid = '',
@@ -19,6 +20,7 @@ class Profile {
     this.photoUrl,
     this.plate,
     this.plateUrl,
+    this.phone,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +32,7 @@ class Profile {
       'photoUrl': photoUrl,
       'plate': plate, // เพิ่มตรงนี้
       'plateUrl': plateUrl,
+      'phone': phone,
     };
   }
 
@@ -43,6 +46,7 @@ class Profile {
       photoUrl: map['photoUrl'],
       plate: map['plate'],
       plateUrl: map['photoUrl'],
+      phone: map['phone'],
     );
   }
 }

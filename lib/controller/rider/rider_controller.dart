@@ -262,6 +262,24 @@ class RiderHomeController {
     }
   }
 
+  /// ตรวจสอบว่ามีงานที่กำลังทำค้างอยู่หรือไม่ (สถานะ 'rider_accepted' หรือ 'picked_up')
+  Future<String?> checkActiveJob() async {
+    final riderId = _auth.currentUser!.uid;
+
+    final query = await _db
+        .collection('deliveries')
+        .where('rider_id', isEqualTo: riderId)
+        .where('status', whereIn: ['rider_accepted', 'picked_up'])
+        .limit(1)
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      // ถ้ำพบงานค้าง
+      return query.docs.first.id; // คืนค่า ID ของงานนั้น
+    }
+    return null; // ไม่พบงานค้าง
+  }
+
   Stream<QuerySnapshot> getAvailableJobs() {
     return _db
         .collection('deliveries')
@@ -398,7 +416,7 @@ class RiderHomeController {
 
       print('ระยะห่างจากเป้าหมาย: ${distance.toStringAsFixed(2)} เมตร');
 
-      if (distance > 20) {
+      if (distance > 50) {
         return "คุณอยู่ห่างจากเป้าหมายเกิน 20 เมตร (ระยะห่างปัจจุบัน: ${distance.toStringAsFixed(2)} เมตร)";
       }
 
@@ -438,6 +456,6 @@ class RiderHomeController {
 
   void stopLocationUpdates() {
     _positionStreamSubscription?.cancel();
-    print('🚫 หยุดการติดตามตำแหน่ง');
+    print('หยุดการติดตามตำแหน่ง');
   }
 }
