@@ -32,7 +32,7 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ประวัติการส่งของ'),
+        title: const Text('รายการส่งเเละรับสินค้า'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

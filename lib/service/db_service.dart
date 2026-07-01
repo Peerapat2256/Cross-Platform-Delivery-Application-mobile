@@ -134,39 +134,84 @@ class DbService {
   }
 
   /// สร้างออเดอร์ส่งของ
-  Future<void> createDeliveryOrder({
+Future<void> createDeliveryOrder({
     required UserAddress senderAddress,
     required Profile receiverProfile,
     required UserAddress receiverAddress,
     required String pickupPhotoUrl,
+    // ‼️ 1. เพิ่ม Parameters สำหรับข้อมูลใหม่ ‼️
+    String? itemName,
+    String? itemDetails,
   }) async {
     if (user == null) throw Exception('User not logged in');
-
     final senderId = user!.uid;
 
-    await _db.collection('deliveries').add({
-      'status': 'waiting_for_rider', // ‼️ สถานะ [1] ตามโจทย์
-      'created_at': FieldValue.serverTimestamp(),
-      'pickup_image_url': pickupPhotoUrl, // ‼️ รูปถ่ายสถานะ [1]
-      'delivery_image_url': null,
+    // ‼️ 2. (สำคัญ) ดึงข้อมูลผู้ส่ง (Sender) ปัจจุบัน ‼️
+    // เราต้องดึงชื่อและเบอร์โทรของผู้ส่งที่กำลังสร้างงานนี้
+    DocumentSnapshot? senderDoc;
+    String senderName = 'ไม่ระบุ';
+    String senderPhone = 'ไม่ระบุ';
+    try {
+      senderDoc = await _db.collection('users').doc(senderId).get();
+      if (senderDoc.exists) {
+        final data = senderDoc.data() as Map<String, dynamic>?;
+        senderName = data?['name'] ?? senderName;
+        senderPhone = data?['phone'] ?? senderPhone;
+      }
+    } catch (e) {
+      print("Error fetching sender info: $e");
+      // Handle error if needed, but proceed with default values
+    }
 
-      // ข้อมูลผู้ส่ง (Denormalized)
+
+    await _db.collection('deliveries').add({
+      'status': 'waiting_for_rider',
+      'created_at': FieldValue.serverTimestamp(),
+      'pickup_image_url': pickupPhotoUrl,
+      'delivery_image_url': null, // Field นี้ยังไม่ได้ใช้
+
+      // --- ข้อมูลผู้ส่ง (Sender) ---
       'sender_id': senderId,
-      'pickup_address_full':
-          '${senderAddress.name} (${senderAddress.details})',
+      'sender_name': senderName, // ‼️ 3. บันทึกชื่อผู้ส่ง ‼️
+      'sender_phone': senderPhone, // ‼️ 4. บันทึกเบอร์ผู้ส่ง ‼️
+      'pickup_address_full': '${senderAddress.name} (${senderAddress.details})',
       'pickup_location': senderAddress.location,
 
-      // ข้อมูลผู้รับ (Denormalized)
+      // --- ข้อมูลผู้รับ (Receiver) ---
       'receiver_id': receiverProfile.uid,
       'receiver_name': receiverProfile.name,
       'receiver_phone': receiverProfile.phone,
-      'delivery_address_full':
-          '${receiverAddress.name} (${receiverAddress.details})',
+      'delivery_address_full': '${receiverAddress.name} (${receiverAddress.details})',
       'delivery_location': receiverAddress.location,
+
+      // --- ‼️ ข้อมูลสินค้า (Item) ‼️ ---
+      'item_name': itemName,         // ‼️ 5. บันทึกชื่อสินค้า ‼️
+      'item_details': itemDetails,   // ‼️ 6. บันทึกข้อมูลสินค้า ‼️
 
       // ข้อมูลไรเดอร์ (ยังไม่มี)
       'rider_id': null,
+      'accepted_at': null,
+      'picked_up_at': null,
+      'delivered_at': null,
+       // เพิ่ม field สำหรับรูปยืนยันของ rider (ถ้ายังไม่มี)
+       'pickup_photo_url': null, // Rider confirms pickup
+       'delivery_photo_url': null, // Rider confirms delivery
     });
+  }
+
+Stream<List<Delivery>> getMyActiveSentDeliveries() {
+    if (user == null) return Stream.value([]);
+    return _db
+        .collection('deliveries')
+        .where('sender_id', isEqualTo: user!.uid)
+        .where('status', whereIn: [
+          'rider_accepted',
+          'picked_up'
+        ]) 
+        .limit(1) 
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Delivery.fromMap(doc)).toList());
   }
 
 Future<String> cancelDelivery(String deliveryId) async {

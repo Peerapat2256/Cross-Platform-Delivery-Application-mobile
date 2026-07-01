@@ -14,6 +14,11 @@ class Delivery {
   final GeoPoint pickupLocation; 
   final GeoPoint deliveryLocation;
 
+  final String senderName;
+  final String senderPhone;
+  final String? itemName;
+  final String? itemDetails;
+
   Delivery({
     required this.deliveryId,
     required this.senderId,
@@ -27,6 +32,10 @@ class Delivery {
     this.pickupImageUrl,
     required this.pickupLocation,
     required this.deliveryLocation,
+    required this.senderName,
+    required this.senderPhone,
+    this.itemName,
+    this.itemDetails,
   });
 
   factory Delivery.fromMap(DocumentSnapshot doc) {
@@ -47,6 +56,10 @@ class Delivery {
           map['pickup_location'] ?? const GeoPoint(0, 0),
       deliveryLocation:
           map['delivery_location'] ?? const GeoPoint(0, 0),
+          senderName: map['sender_name'] ?? 'ผู้ส่งไม่ระบุ',
+      senderPhone: map['sender_phone'] ?? 'ไม่มีเบอร์',
+      itemName: map['item_name'], // อาจเป็น null ได้
+      itemDetails: map['item_details'], // อาจเป็น null ได้
     );
   }
 }
