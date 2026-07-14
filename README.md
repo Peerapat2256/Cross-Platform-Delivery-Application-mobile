@@ -2,6 +2,22 @@
 
 A cross-platform mobile delivery application built with Flutter. It provides dedicated interfaces for both riders and customers, using Firebase for database operations and real-time status updates.
 
+## Demo
+
+<p align="center">
+  <img src="assets/images/register.png" width="220"/>
+  <img src="assets/images/register member.png" width="220"/>
+  <img src="assets/images/register rider.png" width="220"/>
+  <img src="assets/images/login.png" width="220"/>
+  <img src="assets/images/create job.png" width="220"/>
+  <img src="assets/images/job preview.png" width="220"/>
+  <img src="assets/images/accept job.png" width="220"/>
+  <img src="assets/images/job history.png" width="220"/>
+  <img src="assets/images/track job.png" width="220"/>
+
+</p>
+
+
 ## Features
 
 * **User Features**:
