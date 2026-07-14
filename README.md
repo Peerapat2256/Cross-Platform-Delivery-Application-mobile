@@ -9,7 +9,7 @@ We provide a seamless onboarding experience with distinct registration pathways 
 
 | Account Type Selection | User Registration | Rider Registration | Login Screen |
 | :---: | :---: | :---: | :---: |
-| <img src="assets/images/register.png" width="200"/> | <img src="assets/images/register member.png" width="200"/> | <img src="assets/images/register rider.png" width="200"/> | <img src="assets/images/login.png" width="230"/> |
+| <img src="assets/images/register.png" width="300"/> | <img src="assets/images/register member.png" width="200"/> | <img src="assets/images/register rider.png" width="200"/> | <img src="assets/images/login.png" width="300"/> |
 | Choose between User and Rider roles | Register name, email, phone, and profile photo | Register vehicle plate details along with account info | Log in to the application |
 
 ---
